@@ -8,7 +8,7 @@ A customer-facing cart pricing engine that selects the best non-stackable discou
 
 | | URL |
 |---|---|
-| **Live deployment** | [https://legendary-entremet-f0c3df.netlify.app/](https://legendary-entremet-f0c3df.netlify.app/) |
+| **Live deployment** | [https://stalwart-bavarois-2116da.netlify.app/](https://stalwart-bavarois-2116da.netlify.app/) |
 | **GitHub repo** | [https://github.com/cloneryuk/discount-engine-assignment](https://github.com/cloneryuk/discount-engine-assignment) |
 
 ---
