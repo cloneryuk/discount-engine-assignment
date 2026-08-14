@@ -97,8 +97,8 @@ Text to parse: "${text.replace(/"/g, '\\"')}"`;
     });
 
     if (!response.ok) {
-      const errBody = await response.text();
-      return { ok: false, message: `Gemini API error (${response.status}): ${errBody.slice(0, 120)}` };
+      console.warn(`Gemini API error (${response.status}). Using fallback regex parser.`);
+      return fallbackRegexParser(input);
     }
 
     const data = await response.json();
@@ -109,12 +109,18 @@ Text to parse: "${text.replace(/"/g, '\\"')}"`;
       if (p.text !== undefined && !p.thought) raw = p.text;
     }
     raw = raw.trim();
-    if (!raw) return { ok: false, message: 'Gemini returned an empty response. Please try rephrasing.' };
+    if (!raw) {
+      console.warn('Gemini returned empty response. Using fallback regex parser.');
+      return fallbackRegexParser(input);
+    }
 
     // Strip markdown code fences and extract the first JSON object
     const cleaned = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
     const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) return { ok: false, message: 'Could not extract JSON from Gemini response.' };
+    if (!jsonMatch) {
+      console.warn('Could not extract JSON from Gemini response. Using fallback regex parser.');
+      return fallbackRegexParser(input);
+    }
     const parsed = JSON.parse(jsonMatch[0]);
 
     if (parsed.error) return { ok: false, message: parsed.error };
@@ -132,7 +138,64 @@ Text to parse: "${text.replace(/"/g, '\\"')}"`;
       }),
     };
   } catch (error) {
-    return { ok: false, message: `Failed to parse: ${error.message}` };
+    console.warn(`Gemini fetch failed: ${error.message}. Using fallback regex parser.`);
+    return fallbackRegexParser(input);
+  }
+}
+
+function fallbackRegexParser(input) {
+  const text = input.trim();
+  const rule = {
+    id: `RULE-NL-FB-${Date.now()}`,
+    scope: 'cart',
+    appliesTo: '',
+    type: 'percentage',
+    value: 0,
+    stackable: false,
+    minCartValue: 0
+  };
+
+  // Stackable
+  if (/stackable|with other offers/i.test(text)) {
+    rule.stackable = true;
+  }
+
+  // Value
+  const valMatch = text.match(/(?:Rs\.?\s*|₹\s*)(\d+(?:,\d+)*)|(\d+)\s*(?:%|percent)/i);
+  if (valMatch) {
+    if (valMatch[1]) {
+      rule.type = 'flat';
+      rule.value = parseInt(valMatch[1].replace(/,/g, ''), 10);
+    } else if (valMatch[2]) {
+      rule.type = 'percentage';
+      rule.value = parseInt(valMatch[2], 10);
+    }
+  } else {
+    return { ok: false, message: 'Missing discount value and type (e.g., 10%, Rs.100)' };
+  }
+
+  // Scope: brand or platform
+  const brandMatch = text.match(/for ([\w\s]+) brand/i);
+  const platMatch = text.match(/on (?:all )?([\w\s]+) items/i);
+  const cartMatch = text.match(/cart value is more than (?:Rs\.?\s*|₹\s*)(\d+(?:,\d+)*)/i);
+
+  if (brandMatch) {
+    rule.scope = 'brand';
+    rule.appliesTo = brandMatch[1].trim();
+  } else if (platMatch) {
+    rule.scope = 'platform';
+    rule.appliesTo = platMatch[1].trim();
+  } else if (cartMatch) {
+    rule.scope = 'cart';
+    rule.minCartValue = parseInt(cartMatch[1].replace(/,/g, ''), 10);
+  } else {
+    return { ok: false, message: 'Missing or vague scope details (must specify brand, platform, or minimum cart threshold)' };
+  }
+
+  try {
+    return { ok: true, rule: validateRule(rule) };
+  } catch (err) {
+    return { ok: false, message: `Failed to parse: ${err.message}` };
   }
 }
 
