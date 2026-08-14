@@ -103,18 +103,30 @@ $('#rules-upload').addEventListener('change', async (e) => {
   catch (err) { setStatus('#rules-status', err.message, true); }
 });
 $('#cart-upload').addEventListener('change', async (e) => {
-  try { const t = await readFile(e.target); if (!t) return; const i = parseCartCsv(t); state.items = i; state.source = 'CSV cart'; setStatus('#cart-status', `${i.length} item(s) loaded`); render(); }
-  catch (err) { setStatus('#cart-status', err.message, true); }
+  const f = e.target.files?.[0];
+  if (!f) return;
+  const isPdf = f.name.toLowerCase().endsWith('.pdf') || f.type === 'application/pdf';
+
+  if (isPdf) {
+    setStatus('#cart-status', 'Reading PDF…');
+    try { const { items, errors } = await parseCartPdf(f); state.items = items; state.source = 'PDF cart'; setStatus('#cart-status', `${items.length} item(s)${errors.length ? `, ${errors.length} skipped` : ''}`, errors.length > 0); render(); }
+    catch (err) { setStatus('#cart-status', err.message, true); }
+  } else {
+    try { const t = await readFile(e.target); if (!t) return; const i = parseCartCsv(t); state.items = i; state.source = 'CSV cart'; setStatus('#cart-status', `${i.length} item(s) loaded`); render(); }
+    catch (err) { setStatus('#cart-status', err.message, true); }
+  }
 });
-$('#pdf-upload').addEventListener('change', async (e) => {
-  const f = e.target.files?.[0]; if (!f) return; setStatus('#cart-status', 'Reading PDF…');
-  try { const { items, errors } = await parseCartPdf(f); state.items = items; state.source = 'PDF cart'; setStatus('#cart-status', `${items.length} item(s)${errors.length ? `, ${errors.length} skipped` : ''}`, errors.length > 0); render(); }
-  catch (err) { setStatus('#cart-status', err.message, true); }
-});
-$('#rule-form').addEventListener('submit', (e) => {
-  e.preventDefault(); const p = parseRuleText($('#rule-input').value); $('#confirmation').hidden = true;
-  if (!p.ok) { setStatus('#parse-feedback', p.message, true); return; }
-  setStatus('#parse-feedback', 'Review below:'); showConfirmation(p.rule);
+$('#rule-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = $('#parse-rule-btn');
+  btn.disabled = true; btn.textContent = 'Parsing…';
+  setStatus('#parse-feedback', 'Sending to Gemini…'); $('#confirmation').hidden = true;
+  try {
+    const p = await parseRuleText($('#rule-input').value);
+    if (!p.ok) { setStatus('#parse-feedback', p.message, true); return; }
+    setStatus('#parse-feedback', 'Review below:'); showConfirmation(p.rule);
+  } catch (err) { setStatus('#parse-feedback', err.message, true); }
+  finally { btn.disabled = false; btn.textContent = 'Parse'; }
 });
 $('#reset').addEventListener('click', () => {
   state.rules = structuredClone(sampleRules); state.items = structuredClone(sampleCart); state.source = 'Sample data';

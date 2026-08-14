@@ -137,10 +137,10 @@ test('multiple cart rules: best non-stackable wins, stackable applies after', ()
 
 /* ── 7. Natural-language rule parsing ───────────────────── */
 
-test('parses the three assignment NL rule examples', () => {
-  const brand = parseRuleText('20% off for Natura Casa brand, stackable with other offers');
-  const platform = parseRuleText('Rs.100 flat discount on all Flipkart items');
-  const cart = parseRuleText('10% off if cart value is more than Rs.5,000');
+test('parses the three assignment NL rule examples', async () => {
+  const brand = await parseRuleText('20% off for Natura Casa brand, stackable with other offers');
+  const platform = await parseRuleText('Rs.100 flat discount on all Flipkart items');
+  const cart = await parseRuleText('10% off if cart value is more than Rs.5,000');
 
   assert.equal(brand.ok, true);
   assert.deepEqual(
@@ -161,8 +161,8 @@ test('parses the three assignment NL rule examples', () => {
   );
 });
 
-test('rejects ambiguous / invalid natural-language input', () => {
-  const vague = parseRuleText('Give a discount for big orders');
+test('rejects ambiguous / invalid natural-language input', async () => {
+  const vague = await parseRuleText('Give a discount for big orders');
   assert.equal(vague.ok, false);
   assert.ok(vague.message.length > 0);
 });

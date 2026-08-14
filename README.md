@@ -61,9 +61,9 @@ The codebase is split into three independent modules with no circular dependenci
 4. **Cart-level offers**: Cart rules run after all item prices are calculated. They use the discounted item subtotal, not the original total. A cart rule applies only when the subtotal meets or exceeds its `minCartValue`.
 5. **Multiple cart rules**: Best non-stackable cart saving wins; stackable cart rules apply afterward — identical logic to item-level rules.
 
-### Natural-language rule parser
+### Natural-language rule parser (Gemini LLM)
 
-The parser (`parseRuleText`) is a **client-side regex-based fallback** deliberately isolated in `parsers.js`. It handles all four assignment examples:
+The parser (`parseRuleText`) calls **Google Gemini 3.5 Flash** to convert free-form English into structured rule JSON. The LLM receives a tightly constrained prompt that enforces the exact schema (`scope`, `type`, `value`, `appliesTo`, `stackable`, `minCartValue`) and rejects vague input with a clear error.
 
 | Input | Parsed output |
 |---|---|
@@ -72,7 +72,9 @@ The parser (`parseRuleText`) is a **client-side regex-based fallback** deliberat
 | "10% off if cart value is more than Rs.5,000" | Cart / Percentage / 10 / min ₹5,000 |
 | "Give a discount for big orders" | ❌ Clear validation error |
 
-**Trade-off**: For a production system, `parseRuleText` should be replaced by an authenticated backend endpoint calling a real LLM (e.g., GPT-4). The function signature and `validateRule` gate remain identical — swap the adapter, not the contract. This is documented as a deliberate design choice: no API key is exposed client-side, and the fallback guarantees offline functionality.
+**Design**: The LLM output is always run through `validateRule()` before being accepted — the LLM proposes, the validation gate decides. This means even if the model hallucinates a bad value, it will be caught and shown as an error to the user. The UI also shows a loading state ("Sending to Gemini…") while the API call is in flight.
+
+**Note**: Since this is a back-office tool, the API key is embedded client-side. For a public-facing product, the call would be proxied through a secure backend endpoint.
 
 ### PDF upload
 
