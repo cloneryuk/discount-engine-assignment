@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Opptra Discount Engine — transparent cart pricing with full offer explanations." />
+  <title>Opptra | Discount Engine</title>
+  <link rel="icon"
+    href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛒</text></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+  <div class="wrapper">
+
+    <header class="header">
+      <span class="logo">◆ OPPTRA</span>
+      <button id="reset" class="btn-outline btn-sm">Load sample data</button>
+    </header>
+
+    <section class="hero">
+      <h1>Discount Engine</h1>
+      <p>Upload your cart & rules, or use the preloaded sample data. Every discount is calculated and explained.</p>
+    </section>
+
+    <section class="card upload-row">
+      <div class="upload-col">
+        <h2>Rules CSV</h2>
+        <label class="file-label">
+          <input id="rules-upload" type="file" accept=".csv,text/csv" />
+          Choose file
+        </label>
+        <span id="rules-status" class="status"></span>
+      </div>
+      <div class="divider"></div>
+      <div class="upload-col">
+        <h2>Cart (CSV or PDF)</h2>
+        <div class="btn-group">
+          <label class="file-label">
+            <input id="cart-upload" type="file" accept=".csv,text/csv" />
+            CSV
+          </label>
+          <label class="file-label outline">
+            <input id="pdf-upload" type="file" accept="application/pdf,.pdf" />
+            PDF
+          </label>
+        </div>
+        <span id="cart-status" class="status"></span>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Add a rule in plain English</h2>
+      <p class="hint">e.g. "20% off for Natura Casa brand, stackable with other offers"</p>
+      <form id="rule-form" class="nl-form">
+        <textarea id="rule-input" rows="2" placeholder="Describe the offer…" required></textarea>
+        <button id="parse-rule-btn" type="submit" class="btn-primary">Parse</button>
+      </form>
+      <div id="parse-feedback" role="status"></div>
+      <div id="confirmation" hidden></div>
+    </section>
+
+    <div class="data-bar">
+      <strong id="data-summary">Sample data loaded</strong>
+    </div>
+
+    <section id="results" aria-live="polite"></section>
+
+    <details class="card notes-card">
+      <summary>How pricing works</summary>
+      <ul>
+        <li>Best non-stackable discount (largest rupee saving) is picked when multiple match.</li>
+        <li>Stackable offers apply on top of the winner, in rule-ID order.</li>
+        <li>Cart-level offers are applied on the discounted subtotal; threshold must be met.</li>
+        <li>Items with no matching rule keep their base price.</li>
+      </ul>
+    </details>
+    <footer class="footer">© 2026 Opptra</footer>
+  </div>
+  <template id="confirmation-template">
+    <div class="confirm-box">
+      <strong>Confirm this rule?</strong>
+      <dl class="rule-fields"></dl>
+      <div class="btn-group">
+        <button class="confirm btn-primary btn-sm">Add rule</button>
+        <button class="discard btn-outline btn-sm">Discard</button>
+      </div>
+    </div>
+  </template>
+
+  <script type="module" src="app.js"></script>
+</body>
+
+</html>
